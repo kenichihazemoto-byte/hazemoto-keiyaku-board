@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>住宅契約事前Check 利用ガイド</title>
+<style>
+  :root{--ink:#1c2733;--sub:#5a6b7b;--line:#d8e0e8;--red:#c62828;--redbg:#fdecea;--yel:#9a6700;--yelbg:#fff8e1;--blu:#0b5394;--blubg:#e8f0fe;--grn:#1e7e34;--grnbg:#e9f5ec;}
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:A4;margin:12mm 11mm}
+  body{margin:0;font-family:"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;color:var(--ink);line-height:1.65;font-size:12.5px;background:#fff}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:var(--sub);font-size:11px;margin-bottom:12px}
+  h2{font-size:14px;margin:14px 0 6px;padding:3px 10px;background:#1c2733;color:#fff;border-radius:6px;page-break-after:avoid}
+  .flow{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap;margin:8px 0}
+  .step{flex:1;min-width:118px;border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;text-align:center;background:#f8fafc;page-break-inside:avoid}
+  .step b{display:block;font-size:12.5px;margin-bottom:2px}
+  .step .w{font-size:11px;color:var(--sub)}
+  .arrow{align-self:center;font-size:16px;color:var(--sub)}
+  table{border-collapse:collapse;width:100%;font-size:12px;page-break-inside:avoid}
+  th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+  th{background:#eef2f6;white-space:nowrap}
+  .box{border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;margin:6px 0;page-break-inside:avoid}
+  .url{font-family:Menlo,monospace;font-size:12px;background:#eef2f6;padding:2px 8px;border-radius:4px}
+  .warn{background:var(--redbg);border:1.5px solid var(--red);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:12px;page-break-inside:avoid}
+  .b{display:inline-block;border-radius:5px;padding:0 8px;font-size:11px;font-weight:700}
+  .b-red{background:var(--redbg);color:var(--red)} .b-yel{background:var(--yelbg);color:var(--yel)}
+  .b-blu{background:var(--blubg);color:var(--blu)} .b-grn{background:var(--grnbg);color:var(--grn)}
+  .foot{margin-top:14px;padding-top:8px;border-top:2px solid #1c2733;font-size:10.5px;color:var(--sub)}
+</style>
+</head>
+<body>
+<h1>🏠 住宅契約事前Check 利用ガイド</h1>
+<div class="sub">契約前の書類（契約書・見積・図面・仕様書）をAI秘書こはぜが突合し、間違いを契約前に潰す仕組み ／ 2026-09-06版・ハゼモト建設</div>
+
+<h2>1．全体の流れ（この5歩だけ）</h2>
+<div class="flow">
+  <div class="step"><b>① 書類をアップ</b><span class="w">営業・設計<br>ボードの「書類アップロード」タブへPDFを入れる</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>② 自動通知</b><span class="w">Chatwork「住宅契約事前Check」に届く（自動）</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>③ こはぜがチェック</b><span class="w">社長が合図→書類突合・数量検算・単価判定</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>④ 結果が届く</b><span class="w">報告書PDFがChatworkへ＋ボードに履歴掲載</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>⑤ 直して再アップ</b><span class="w">修正版を①へ。前回比（解消/新規/継続）が自動表示</span></div>
+</div>
+
+<h2>2．ボードの見方・入り方</h2>
+<div class="box">
+URL：<span class="url">https://hazemoto-keiyaku-board-hazemoto.vercel.app</span>（スマホ可）<br>
+閲覧トークン：Chatworkルーム「住宅契約事前Check」の概要欄に記載（初回入力後は端末が記憶）
+</div>
+<table>
+<tr><th>タブ</th><th>何が見えるか</th></tr>
+<tr><td>📋 案件と履歴</td><td>案件ごとに第1回・第2回…の全チェック履歴。<span class="b b-red">重大</span><span class="b b-yel">要確認</span><span class="b b-grn">OK</span>の件数、前回比（✅解消・🆕新規・↩️継続）、報告書PDF・指摘箇所の画像</td></tr>
+<tr><td>📤 書類アップロード</td><td>修正版・追加書類の提出口。案件を選ぶ→名前・メモ→PDF添付（1件15MBまで・複数可）</td></tr>
+<tr><td>🌱 こはぜの成長ログ</td><td>案件から学んだ検出パターンの蓄積（チェックは案件を重ねるほど賢くなる）</td></tr>
+</table>
+
+<h2>3．役割分担</h2>
+<table>
+<tr><th>担当</th><th>やること</th></tr>
+<tr><td>営業</td><td>契約書類が揃ったらアップ（メモに「何を見てほしいか」を一言）。指摘のうち補助金・インフラ系（下水道等）の確認回答</td></tr>
+<tr><td>設計・積算</td><td>🔴🟡指摘への修正→修正版を再アップ。図面は<b>手書き修正のままにせず清書してから</b>契約添付へ</td></tr>
+<tr><td>社長・管理者</td><td>Chatwork通知を見たら、こはぜに「ボードの新着をチェック」と一言（これがチェック開始の合図）</td></tr>
+<tr><td>全員</td><td>ボードで進捗と履歴を見る。契約可否の目安＝<b>🔴重大が0になってから契約</b></td></tr>
+</table>
+
+<h2>4．チェックの中身（こはぜが毎回やること）</h2>
+<div class="box" style="font-size:11.5px">
+金額連鎖の検算（見積内訳→総計→契約書→支払表を1円まで）／面積・坪数の突合（図面求積との一致）／サッシ・設備の型番突合（図面タグ⇔見積⇔仕様書）／仕様書の赤字オプション⇔見積の双方向突合／外構・擁壁の数量を図面寸法から拾い直し（「一式」禁止・±10%ルール）／単価の妥当性（施工費込み原則・EcoSuma標準仕様マスタ・過去案件との社内ブレ検出）／契約条項・未定項目・変更期限
+</div>
+
+<h2>5．約束ごと</h2>
+<div class="warn">
+・ボードのURL・トークン・報告書は<b>社内限り</b>。施主・社外への転送、SNS・Web掲載は禁止（施主様の個人情報を含みます）<br>
+・チェック結果は<b>AIによる参考情報</b>。最終判断は担当者・建築士が行う（指摘に納得できない時はルームで反論してOK——それも精度向上の材料になります）<br>
+・原価・実行予算の情報はこの仕組みには載っていません（客出し金額のみ）
+</div>
+
+<div class="foot">困ったら：Chatwork「住宅契約事前Check」ルームで質問 ／ 仕組みの管理：社長・こはぜ ｜ 発行：2026-09-06　AI秘書こはぜ</div>
+</body>
+</html>

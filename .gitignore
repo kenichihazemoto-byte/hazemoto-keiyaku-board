@@ -1,0 +1,7 @@
+.DS_Store
+# 施主書類・チェック成果物はリポジトリに入れない（Supabase/ローカルkeiyaku-checkが置き場）
+inbox/
+*.pdf
+!docs/*.pdf
+node_modules/
+.vercel/

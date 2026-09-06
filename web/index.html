@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>住宅契約事前Check ボード</title>
+<style>
+  :root{--ink:#1c2733;--sub:#5a6b7b;--line:#d8e0e8;--bg:#f4f6f9;--red:#c62828;--redbg:#fdecea;--yel:#9a6700;--yelbg:#fff8e1;--blu:#0b5394;--blubg:#e8f0fe;--grn:#1e7e34;--grnbg:#e9f5ec;}
+  *{box-sizing:border-box}
+  body{margin:0;padding:24px 14px;font-family:"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;font-size:15px}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:19px;margin:0 0 4px}
+  .sub{color:var(--sub);font-size:12.5px;margin-bottom:14px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .tabs button{padding:8px 16px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:14px;cursor:pointer;font-weight:600;color:var(--sub)}
+  .tabs button.on{background:#1c2733;color:#fff;border-color:#1c2733}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+  .proj{font-size:16px;font-weight:700;margin:0 0 6px}
+  .meta{color:var(--sub);font-size:12.5px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+  .b{border-radius:6px;padding:2px 10px;font-size:12.5px;font-weight:700}
+  .b-red{background:var(--redbg);color:var(--red)} .b-yel{background:var(--yelbg);color:var(--yel)}
+  .b-blu{background:var(--blubg);color:var(--blu)} .b-grn{background:var(--grnbg);color:var(--grn)}
+  .b-diff{background:#eef2f6;color:#1c2733}
+  .st{display:inline-block;background:#1c2733;color:#fff;border-radius:6px;padding:1px 10px;font-size:12px;font-weight:700}
+  details{border:1px solid var(--line);border-radius:10px;margin:8px 0;background:#fbfcfe}
+  details[open]{background:#fff}
+  summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:14px}
+  .rbody{padding:0 14px 12px}
+  ul.f{margin:6px 0;padding-left:0;list-style:none}
+  ul.f li{padding:6px 8px;border-top:1px solid var(--line);font-size:13.5px}
+  ul.f li:first-child{border-top:none}
+  .r{color:var(--red);font-weight:700} .y{color:var(--yel);font-weight:700}
+  .fs{color:var(--sub);font-size:12px}
+  .links a{display:inline-block;margin:4px 8px 0 0;padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--blu);text-decoration:none;font-size:13px}
+  .links a:hover{background:var(--blubg)}
+  #gate{max-width:420px;margin:80px auto;text-align:center}
+  #gate input{width:100%;padding:10px;font-size:16px;border:1px solid var(--line);border-radius:8px;margin:10px 0}
+  button.pri{padding:10px 24px;font-size:15px;border:none;border-radius:8px;background:#1c2733;color:#fff;cursor:pointer}
+  .note{color:var(--sub);font-size:11.5px;margin-top:20px}
+  .err{color:var(--red);font-weight:700}
+  .form label{display:block;font-size:13px;font-weight:700;margin:10px 0 2px}
+  .form input[type=text],.form select,.form textarea{width:100%;padding:8px;font-size:14px;border:1px solid var(--line);border-radius:8px;font-family:inherit}
+  .form input[type=file]{margin:6px 0;font-size:13px}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#eef2f6;white-space:nowrap}
+  .g{border-left:3px solid #1c2733;padding:6px 12px;margin:8px 0;background:#fff}
+  .g .d{font-size:12px;color:var(--sub)} .g .t{font-weight:700;font-size:14px} .g .dd{font-size:12.5px;color:#3a4a5a}
+  .ok2{color:var(--grn);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="gate">
+    <h1>🏠 住宅契約事前Check ボード</h1>
+    <p class="sub">閲覧トークンを入力してください（社内限り）</p>
+    <input id="tok" type="password" placeholder="トークン">
+    <button class="pri" onclick="go()">表示</button>
+    <p id="gerr" class="err"></p>
+  </div>
+  <div id="app" style="display:none">
+    <h1>🏠 住宅契約事前Check ボード</h1>
+    <div class="sub" id="gen"></div>
+    <div class="tabs">
+      <button id="tb0" class="on" onclick="tab(0)">📋 案件と履歴</button>
+      <button id="tb1" onclick="tab(1)">📤 書類アップロード</button>
+      <button id="tb2" onclick="tab(2)">🌱 こはぜの成長ログ</button>
+    </div>
+    <div id="pane0"></div>
+    <div id="pane1" style="display:none">
+      <div class="card form">
+        <p class="proj">修正版・追加書類のアップロード</p>
+        <p class="fs">アップロードするとChatwork「住宅契約事前Check」に自動通知が届き、こはぜが差分チェックして次の回として履歴に載せます。</p>
+        <label>案件</label>
+        <select id="upProj"></select>
+        <input id="upProjNew" type="text" placeholder="新規案件の場合はここに案件名（例：山田様邸）" style="margin-top:6px">
+        <label>お名前</label>
+        <input id="upBy" type="text" placeholder="例：田代">
+        <label>メモ（何を直したか・見てほしい点）</label>
+        <textarea id="upNote" rows="2" placeholder="例：見積-08版。オプション再集計と16511統一を反映"></textarea>
+        <label>ファイル（PDF・画像／1ファイル15MBまで・複数可）</label>
+        <input id="upFiles" type="file" multiple accept=".pdf,.png,.jpg,.jpeg">
+        <div style="margin-top:12px"><button class="pri" onclick="doUpload()">アップロード</button> <span id="upMsg" class="fs"></span></div>
+      </div>
+      <div class="card">
+        <p class="proj">受領箱（アップロード履歴）</p>
+        <div style="overflow-x:auto"><table id="upList"></table></div>
+      </div>
+    </div>
+    <div id="pane2">
+      <div class="card">
+        <p class="proj">こはぜが案件から学んだこと（検出パターンの増加履歴）</p>
+        <p class="fs">チェックのたびにスキルへ焼き込まれ、次の案件から全案件に自動適用されます。</p>
+        <div id="growth"></div>
+      </div>
+    </div>
+    <p class="note">・本ボードはAIチェック（こはぜ）の共有用です。最終判断は担当者・建築士が行います。<br>
+    ・施主様の個人情報を含みます。社外共有・URL転送は禁止。ファイルリンクは60分で失効します（再読み込みで再発行）。<br>
+    ・原価・実行予算の情報は含まれていません。</p>
+  </div>
+</div>
+<script>
+const API = "https://rrfeqnzxhbxntyewgeyj.supabase.co/functions/v1/keiyaku-board";
+let TOKEN = "", DATA = null;
+const esc = s => String(s??"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function tab(i){ for(let k=0;k<3;k++){ document.getElementById("pane"+k).style.display = k===i?"block":"none"; document.getElementById("tb"+k).className = k===i?"on":""; } }
+async function load(t){
+  const r = await fetch(API + "?token=" + encodeURIComponent(t));
+  if(!r.ok) throw new Error("unauthorized");
+  return r.json();
+}
+function chMark(c){ return c==="resolved"?"✅解消 ":(c==="new"?"🆕新規 ":(c==="continued"?"↩️継続 ":"")); }
+function render(d){
+  DATA = d;
+  document.getElementById("gate").style.display="none";
+  document.getElementById("app").style.display="block";
+  document.getElementById("gen").textContent = "更新: " + new Date(d.generated_at).toLocaleString("ja-JP") + "（ファイルリンク有効60分）";
+  // --- 案件と履歴 ---
+  const groups = {};
+  for(const row of d.rows){ (groups[row.project] ??= []).push(row); }
+  const p0 = document.getElementById("pane0"); p0.innerHTML = "";
+  for(const [proj, rounds] of Object.entries(groups)){
+    rounds.sort((a,b)=>b.round-a.round);
+    const latest = rounds[0];
+    let html = `<div class="card"><p class="proj">${esc(proj)}</p>
+      <div class="meta">最新：第${latest.round}回（${esc(latest.check_date)}）　<span class="st">${esc(latest.status)}</span></div>`;
+    rounds.forEach((row,i)=>{
+      const c = row.counts||{}, df = c.diff;
+      const diffB = df?`<span class="b b-diff">前回比：✅解消${df.resolved??0}・🆕新規${df.new??0}・↩️継続${df.continued??0}</span>`:"";
+      const finds = (row.findings||[]).map(f=>{
+        const cls = f.rank==="red"?"r":(f.rank==="yellow"?"y":"");
+        const mark = f.rank==="red"?"🔴":(f.rank==="yellow"?"🟡":"🔵");
+        return `<li><span class="${cls}">${mark} ${chMark(f.change)}${esc(f.title)}</span><br><span class="fs">状態: ${esc(f.status||"—")}</span></li>`;
+      }).join("");
+      const links = (row.links||[]).map(l=>`<a href="${l.url}" target="_blank" rel="noopener">📄 ${esc(l.label)}</a>`).join("");
+      html += `<details ${i===0?"open":""}><summary>第${row.round}回　${esc(row.check_date)}
+        <span class="b b-red">重大${c.red??0}</span> <span class="b b-yel">要確認${c.yellow??0}</span> <span class="b b-grn">OK${c.ok??0}</span> ${diffB}</summary>
+        <div class="rbody"><ul class="f">${finds}</ul><div class="links">${links}</div>
+        ${row.note?`<p class="fs">${esc(row.note)}</p>`:""}</div></details>`;
+    });
+    html += `</div>`;
+    p0.insertAdjacentHTML("beforeend", html);
+  }
+  // --- アップロード ---
+  const sel = document.getElementById("upProj");
+  sel.innerHTML = Object.keys(groups).map(p=>`<option>${esc(p)}</option>`).join("") + `<option value="__new__">（新規案件）</option>`;
+  const ul = document.getElementById("upList");
+  ul.innerHTML = `<tr><th>日時</th><th>案件</th><th>ファイル</th><th>登録者</th><th>状態</th><th></th></tr>` +
+    (d.uploads||[]).map(u=>`<tr><td>${new Date(u.created_at).toLocaleString("ja-JP")}</td><td>${esc(u.project)}</td>
+      <td>${esc(u.original_name)}${u.note?`<br><span class="fs">${esc(u.note)}</span>`:""}</td><td>${esc(u.uploaded_by)}</td>
+      <td>${u.status==="未チェック"?esc(u.status):`<span class="ok2">${esc(u.status)}</span>`}</td>
+      <td>${u.url?`<a href="${u.url}" target="_blank" rel="noopener">開く</a>`:""}</td></tr>`).join("");
+  // --- 成長ログ ---
+  document.getElementById("growth").innerHTML = (d.growth||[]).map(g=>
+    `<div class="g"><div class="d">${esc(g.learned_on)}｜${esc(g.case_name)}</div>
+     <div class="t">${esc(g.title)}</div><div class="dd">${esc(g.detail)}</div></div>`).join("");
+}
+async function doUpload(){
+  const msg = document.getElementById("upMsg");
+  let proj = document.getElementById("upProj").value;
+  if(proj==="__new__") proj = document.getElementById("upProjNew").value.trim();
+  if(document.getElementById("upProjNew").value.trim()) proj = document.getElementById("upProjNew").value.trim();
+  const by = document.getElementById("upBy").value.trim();
+  const note = document.getElementById("upNote").value.trim();
+  const files = document.getElementById("upFiles").files;
+  if(!proj){ msg.textContent="案件名を入れてください"; return; }
+  if(!files.length){ msg.textContent="ファイルを選んでください"; return; }
+  for(let i=0;i<files.length;i++){
+    const f = files[i];
+    msg.textContent = `送信中 ${i+1}/${files.length}：${f.name}…`;
+    const b64 = await new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(",")[1]); r.readAsDataURL(f); });
+    const resp = await fetch(API, {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({token:TOKEN, action:"upload_doc", project:proj, uploaded_by:by, note, filename:f.name, content_type:f.type||"application/octet-stream", content_base64:b64})});
+    const j = await resp.json().catch(()=>({ok:false}));
+    if(!j.ok){ msg.textContent = `❌ ${f.name} の送信に失敗（${j.error||resp.status}）`; return; }
+  }
+  msg.textContent = "✅ 送信完了。Chatworkに通知しました。";
+  document.getElementById("upFiles").value = "";
+  render(await load(TOKEN)); tab(1);
+}
+async function go(){
+  const t = document.getElementById("tok").value.trim();
+  try{ const d = await load(t); TOKEN = t; localStorage.setItem("kb_token", t); render(d); }
+  catch(e){ document.getElementById("gerr").textContent = "トークンが違うか、通信エラーです"; }
+}
+(async()=>{
+  const t = localStorage.getItem("kb_token");
+  if(t){ try{ const d = await load(t); TOKEN = t; render(d); }catch(e){ localStorage.removeItem("kb_token"); } }
+})();
+</script>
+</body>
+</html>
