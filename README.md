@@ -3,8 +3,8 @@
 契約前の書類（契約書・見積・図面・仕様書）をAI秘書こはぜが突合し、
 指摘→修正→差分再チェックの履歴を社内共有するアプリ。ハゼモト建設株式会社 社内専用。
 
-**⚠️ このリポジトリはPrivate運用が前提。Publicにしないこと**（閲覧トークンがソースに含まれる。
-施主情報・原価情報は含まれていない）。
+**このリポジトリにはトークン・施主情報・原価情報は含まれていない**（閲覧トークンはEdge Secret
+`BOARD_TOKEN`）。それでもPrivate運用を維持すること（社内アプリのため）。
 
 ## 構成
 
@@ -17,7 +17,7 @@
 | 通知 | Chatwork | ルーム446972310「住宅契約事前Check」。APIトークンはEdge Secret `CHATWORK_API_TOKEN` |
 
 - 本番URL: https://hazemoto-keiyaku-board-hazemoto.vercel.app
-- 閲覧トークン: `keiyaku-board/index.ts` の `TOKEN` 定数（＝Chatworkルーム概要欄に掲示している値）
+- 閲覧トークン: Edge Secret `BOARD_TOKEN`（＝Chatworkルーム概要欄に掲示している値）
 
 ## 運用（誰が何をするか）
 
@@ -42,14 +42,14 @@
 
 ## トークンの差し替え（漏えい時）
 
-1. `supabase/functions/keiyaku-board/index.ts` の `TOKEN` を新しい値に変更（`openssl rand -hex 10`）
-2. デプロイ → 旧トークンは即失効
+1. Supabaseダッシュボード Settings→Edge Function Secrets で `BOARD_TOKEN` を新しい値に変更（`openssl rand -hex 10`）
+2. 保存 → 旧トークンは即失効（コード変更・デプロイ不要）
 3. Chatworkルーム概要欄の掲示を更新（利用者は次回アクセス時に再入力）
 
 ## 宿題（TODO）
 
-- [ ] `TOKEN` をEdge Secret `BOARD_TOKEN` へ移す（supabase CLIのセットアップ後。コードは
-      `Deno.env.get("BOARD_TOKEN")` に変更し、このREADMEから本節を消す）
+- [x] `TOKEN` をEdge Secret `BOARD_TOKEN` へ移行済み（2026-09-06。コードに秘密なし。
+      差し替えはSupabaseダッシュボード Settings→Edge Function Secrets で値を変更するだけ）
 - [ ] GitHub→Vercel自動デプロイの接続（現在は手動デプロイ。接続時はプロジェクトを作り直さず
       既存プロジェクトにGitを紐付けること——URLが変わるとチーム掲示が無効になる）
 - [ ] 外販時: マルチテナント化（案件テーブルに会社ID・トークンを会社ごとに分離・実名データの排除）

@@ -1,9 +1,9 @@
-// keiyaku-board v3 — 契約前チェック共有ボードAPI（営業チーム向け・トークン保護）
+// keiyaku-board v4 — 契約前チェック共有ボードAPI（営業チーム向け・トークン保護）
 // GET ?token=T → checks(全回次履歴)+uploads(書類受領箱)+growth(こはぜ成長ログ)+署名URL60分
 // POST upload_doc → 修正版書類を受付(非公開bucket)しChatwork 446972310へ定型通知(overdue-alertと同種の機械通知)
 // 原価情報は扱わない。StorageキーはASCIIのみ（日本語名はoriginal_nameに保持）
 // ※デプロイはMCP/CLI経由。このファイルが正本（2026-09-06版・本番と同一内容を保存）
-const TOKEN = Deno.env.get("BOARD_TOKEN") ?? "a270262cef78aa16cbdd"; // TODO: Secret設定確認後にフォールバック削除
+const TOKEN = Deno.env.get("BOARD_TOKEN") ?? ""; // 閲覧トークンはEdge Secret BOARD_TOKEN（コードに秘密を置かない）
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CW = Deno.env.get("CHATWORK_API_TOKEN") ?? "";
@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     if (req.method === "OPTIONS") return json({ ok: true });
     const u = new URL(req.url);
     if (req.method === "GET") {
-      if (u.searchParams.get("token") !== TOKEN) return json({ ok: false, error: "unauthorized" }, 401);
+      if (!TOKEN || u.searchParams.get("token") !== TOKEN) return json({ ok: false, error: "unauthorized" }, 401);
       const [rc, ru, rg] = await Promise.all([
         fetch(`${URL_}/rest/v1/keiyaku_checks?select=*&order=project.asc,round.desc`, { headers: H }),
         fetch(`${URL_}/rest/v1/keiyaku_uploads?select=*&order=created_at.desc&limit=50`, { headers: H }),
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     }
     if (req.method === "POST") {
       const b = await req.json().catch(() => ({}));
-      if (b.token !== TOKEN) return json({ ok: false, error: "unauthorized" }, 401);
+      if (!TOKEN || b.token !== TOKEN) return json({ ok: false, error: "unauthorized" }, 401);
       if (b.action === "upload" || b.action === "upload_public") {
         const bucket = b.action === "upload" ? "keiyaku-reports" : "keiyaku-public";
         const bin = Uint8Array.from(atob(String(b.content_base64 ?? "")), (c) => c.charCodeAt(0));
