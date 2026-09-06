@@ -3,7 +3,7 @@
 // POST upload_doc → 修正版書類を受付(非公開bucket)しChatwork 446972310へ定型通知(overdue-alertと同種の機械通知)
 // 原価情報は扱わない。StorageキーはASCIIのみ（日本語名はoriginal_nameに保持）
 // ※デプロイはMCP/CLI経由。このファイルが正本（2026-09-06版・本番と同一内容を保存）
-const TOKEN = "a270262cef78aa16cbdd";
+const TOKEN = Deno.env.get("BOARD_TOKEN") ?? "a270262cef78aa16cbdd"; // TODO: Secret設定確認後にフォールバック削除
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CW = Deno.env.get("CHATWORK_API_TOKEN") ?? "";
