@@ -1,6 +1,7 @@
-// keiyaku-board v4 — 契約前チェック共有ボードAPI（営業チーム向け・トークン保護）
+// keiyaku-board v5 — 契約前チェック共有ボードAPI（営業チーム向け・トークン保護）
 // GET ?token=T → checks(全回次履歴)+uploads(書類受領箱)+growth(こはぜ成長ログ)+署名URL60分
-// POST upload_doc → 修正版書類を受付(非公開bucket)しChatwork 446972310へ定型通知(overdue-alertと同種の機械通知)
+// POST sign_upload→署名付きURL発行(ブラウザがStorageへ直接PUT・base64不使用=大容量OK) / register_doc→受領登録+Chatwork定型通知
+// (upload_docは旧方式・base64経由のため15MB付近で546 WORKER_LIMITになる。互換のため残置)
 // 原価情報は扱わない。StorageキーはASCIIのみ（日本語名はoriginal_nameに保持）
 // ※デプロイはMCP/CLI経由。このファイルが正本（2026-09-06版・本番と同一内容を保存）
 const TOKEN = Deno.env.get("BOARD_TOKEN") ?? ""; // 閲覧トークンはEdge Secret BOARD_TOKEN（コードに秘密を置かない）
@@ -61,6 +62,38 @@ Deno.serve(async (req) => {
           method: "POST", headers: { ...H, "Content-Type": String(b.content_type ?? "application/octet-stream"), "x-upsert": "true" }, body: bin,
         });
         return json({ ok: r.ok, status: r.status, resp: (await r.text()).slice(0, 200) });
+      }
+      if (b.action === "sign_upload") {
+        const orig = String(b.filename ?? "file").slice(0, 120);
+        const ext = (orig.match(/\.[A-Za-z0-9]{1,6}$/) ?? [""])[0].toLowerCase();
+        const path = `uploads/${Date.now()}_${crypto.randomUUID().slice(0, 8)}${ext || ".bin"}`;
+        const r = await fetch(`${URL_}/storage/v1/object/upload/sign/keiyaku-reports/${path}`, {
+          method: "POST", headers: { ...H, "Content-Type": "application/json" }, body: "{}",
+        });
+        const j = await r.json().catch(() => null);
+        if (!r.ok || !j?.url) return json({ ok: false, error: "sign failed " + r.status }, 500);
+        return json({ ok: true, path, upload_url: `${URL_}/storage/v1${j.url}` });
+      }
+      if (b.action === "register_doc") {
+        const project = String(b.project ?? "").slice(0, 100);
+        const by = String(b.uploaded_by ?? "").slice(0, 40);
+        const orig = String(b.filename ?? "file").slice(0, 120);
+        const note = String(b.note ?? "").slice(0, 300);
+        const path = String(b.path ?? "");
+        if (!project || !path.startsWith("uploads/")) return json({ ok: false, error: "project and path required" }, 400);
+        const ins = await fetch(`${URL_}/rest/v1/keiyaku_uploads`, {
+          method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "return=representation" },
+          body: JSON.stringify({ project, uploaded_by: by, original_name: orig, storage_path: path, note }),
+        });
+        const row = (await ins.json())?.[0];
+        if (CW && !b.silent) {
+          const msg = `[info][title]\u{1F4E5} 契約チェックボードに書類が届きました[/title]案件：${project}\nファイル：${orig}\n登録者：${by || "未記入"}\nメモ：${note || "なし"}\n\n→ 社長からこはぜへ「ボードの新着をチェック」と依頼すると差分チェックが走ります（この通知は定型文の自動通知です）[/info]`;
+          await fetch(`https://api.chatwork.com/v2/rooms/${CW_ROOM}/messages`, {
+            method: "POST", headers: { "X-ChatworkToken": CW, "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ body: msg }),
+          }).catch(() => {});
+        }
+        return json({ ok: true, id: row?.id });
       }
       if (b.action === "upload_doc") {
         const project = String(b.project ?? "").slice(0, 100);
