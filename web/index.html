@@ -40,6 +40,8 @@
   button.pri{padding:10px 24px;font-size:15px;border:none;border-radius:8px;background:#1c2733;color:#fff;cursor:pointer}
   .note{color:var(--sub);font-size:11.5px;margin-top:20px}
   .err{color:var(--red);font-weight:700}
+  button.ai{margin-top:4px;padding:4px 10px;font-size:12px;border:1px solid var(--blu);border-radius:6px;background:var(--blubg);color:var(--blu);cursor:pointer;font-weight:700}
+  button.ai:hover{background:#d8e6fb}
   .form label{display:block;font-size:13px;font-weight:700;margin:10px 0 2px}
   .form input[type=text],.form select,.form textarea{width:100%;padding:8px;font-size:14px;border:1px solid var(--line);border-radius:8px;font-family:inherit}
   .form input[type=file]{margin:6px 0;font-size:13px}
@@ -150,8 +152,9 @@ function render(d){
   ul.innerHTML = `<tr><th>日時</th><th>案件</th><th>ファイル</th><th>登録者</th><th>状態</th><th></th></tr>` +
     (d.uploads||[]).map(u=>`<tr><td>${new Date(u.created_at).toLocaleString("ja-JP")}</td><td>${esc(u.project)}</td>
       <td>${esc(u.original_name)}${u.note?`<br><span class="fs">${esc(u.note)}</span>`:""}</td><td>${esc(u.uploaded_by)}</td>
-      <td>${u.status==="未チェック"?esc(u.status):`<span class="ok2">${esc(u.status)}</span>`}</td>
-      <td>${u.url?`<a href="${u.url}" target="_blank" rel="noopener">開く</a>`:""}</td></tr>`).join("");
+      <td>${u.status==="未チェック"?esc(u.status):`<span class="ok2">${esc(u.status)}</span>`}${u.status==="未チェック"?`<br><button class="ai" onclick="aiCheck(${u.id})">🤖 AI一次チェック</button>`:""}</td>
+      <td>${u.url?`<a href="${u.url}" target="_blank" rel="noopener">開く</a>`:""}</td></tr>
+      ${u.ai_summary?`<tr><td colspan="6" style="background:#f4f8ff"><details open><summary style="cursor:pointer;font-weight:700">🤖 AI一次チェック（速報）</summary><pre style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;margin:6px 0 0">${esc(u.ai_summary)}</pre></details></td></tr>`:""}`).join("");
   // --- 成長ログ ---
   document.getElementById("growth").innerHTML = (d.growth||[]).map(g=>
     `<div class="g"><div class="d">${esc(g.learned_on)}｜${esc(g.case_name)}</div>
@@ -185,6 +188,23 @@ async function doUpload(){
   msg.textContent = "✅ 送信完了。Chatworkに通知しました。";
   document.getElementById("upFiles").value = "";
   render(await load(TOKEN)); tab(1);
+}
+async function aiCheck(id){
+  if(!confirm("AI一次チェックを実行しますか？（数分かかります。結果はこの受領箱に表示されます）")) return;
+  const r = await fetch(API, {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({token:TOKEN, action:"ai_check", upload_id:id})});
+  const j = await r.json().catch(()=>({ok:false}));
+  if(!j.ok){ alert("開始できませんでした（"+(j.error||r.status)+"）"); return; }
+  render(await load(TOKEN)); tab(1);
+  let n = 0;
+  const t = setInterval(async ()=>{
+    n++;
+    const d = await load(TOKEN).catch(()=>null);
+    if(d){ render(d); tab(1);
+      const u = (d.uploads||[]).find(x=>x.id===id);
+      if(u && u.status !== "AI一次チェック中…"){ clearInterval(t); } }
+    if(n>=18) clearInterval(t);
+  }, 20000);
 }
 async function go(){
   const t = document.getElementById("tok").value.trim();

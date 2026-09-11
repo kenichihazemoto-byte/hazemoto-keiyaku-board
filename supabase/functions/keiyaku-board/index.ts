@@ -1,4 +1,4 @@
-// keiyaku-board v5 — 契約前チェック共有ボードAPI（営業チーム向け・トークン保護）
+// keiyaku-board v6 — 契約前チェック共有ボードAPI（営業チーム向け・トークン保護）
 // GET ?token=T → checks(全回次履歴)+uploads(書類受領箱)+growth(こはぜ成長ログ)+署名URL60分
 // POST sign_upload→署名付きURL発行(ブラウザがStorageへ直接PUT・base64不使用=大容量OK) / register_doc→受領登録+Chatwork定型通知
 // (upload_docは旧方式・base64経由のため15MB付近で546 WORKER_LIMITになる。互換のため残置)
@@ -8,6 +8,7 @@ const TOKEN = Deno.env.get("BOARD_TOKEN") ?? ""; // 閲覧トークンはEdge Se
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CW = Deno.env.get("CHATWORK_API_TOKEN") ?? "";
+const AKEY = Deno.env.get("ANTHROPIC_API_KEY") ?? ""; // AI一次チェック用（プレカット/設備アプリと同じSecret）
 const CW_ROOM = "446972310";
 const H = { apikey: SRK, Authorization: `Bearer ${SRK}` };
 const json = (o: unknown, s = 200) =>
@@ -62,6 +63,60 @@ Deno.serve(async (req) => {
           method: "POST", headers: { ...H, "Content-Type": String(b.content_type ?? "application/octet-stream"), "x-upsert": "true" }, body: bin,
         });
         return json({ ok: r.ok, status: r.status, resp: (await r.text()).slice(0, 200) });
+      }
+      if (b.action === "ai_check") {
+        const id = Number(b.upload_id ?? 0);
+        if (!id) return json({ ok: false, error: "upload_id required" }, 400);
+        if (!AKEY) return json({ ok: false, error: "ANTHROPIC_API_KEY未設定" }, 400);
+        const r0 = await fetch(`${URL_}/rest/v1/keiyaku_uploads?id=eq.${id}&select=*`, { headers: H });
+        const row = (await r0.json())?.[0];
+        if (!row) return json({ ok: false, error: "upload not found" }, 404);
+        await fetch(`${URL_}/rest/v1/keiyaku_uploads?id=eq.${id}`, {
+          method: "PATCH", headers: { ...H, "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "AI一次チェック中…" }),
+        });
+        const silent = Boolean(b.silent);
+        const task = (async () => {
+          const patch = (o: unknown) => fetch(`${URL_}/rest/v1/keiyaku_uploads?id=eq.${id}`, {
+            method: "PATCH", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify(o),
+          });
+          try {
+            const fr = await fetch(`${URL_}/storage/v1/object/keiyaku-reports/${row.storage_path}`, { headers: H });
+            if (!fr.ok) throw new Error("storage " + fr.status);
+            const buf = new Uint8Array(await fr.arrayBuffer());
+            let bin = ""; const CH = 32768;
+            for (let i = 0; i < buf.length; i += CH) bin += String.fromCharCode(...buf.subarray(i, i + CH));
+            const b64 = btoa(bin);
+            const sys = "あなたはハゼモト建設の住宅契約書類の一次チェックAI。スキャンPDF(契約書・見積書・仕様書・図面)を読み、以下を日本語で簡潔に出力する。\n【1】書類の種類・版・日付の一覧\n【2】金額の検算(内訳小計→総計→消費税→契約書金額・支払表合計の一致。式を書く)\n【3】面積の一致(㎡・坪)\n【4】目立つ不整合・記載漏れ 最大5件(重要度順。ページと根拠を書く)\n【5】こはぜ(詳細チェック)が深掘りすべき点 3つ\nルール: 事実のみ。読み取れない箇所は「判読不能」と書く。推測には「推定」を付す。原価・利益には言及しない。全体で800字以内。冒頭に「🤖AI一次チェック(速報)——正式判定はこはぜの本チェックで確定」と明記。";
+            const resp = await fetch("https://api.anthropic.com/v1/messages", {
+              method: "POST",
+              headers: { "x-api-key": AKEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+              body: JSON.stringify({
+                model: "claude-sonnet-5", max_tokens: 3000, thinking: { type: "disabled" }, system: sys,
+                messages: [{ role: "user", content: [
+                  { type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } },
+                  { type: "text", text: `案件：${row.project}\n登録メモ：${row.note || "なし"}\nファイル：${row.original_name}\n一次チェックを実行してください。` },
+                ]}],
+              }),
+            });
+            const jj = await resp.json();
+            const text = (jj?.content ?? []).filter((c: { type?: string }) => c.type === "text").map((c: { text?: string }) => c.text ?? "").join("\n").trim()
+              || ("APIエラー: " + JSON.stringify(jj).slice(0, 300));
+            await patch({ status: "AI一次チェック済（こはぜ本チェック待ち）", ai_summary: text.slice(0, 8000) });
+            if (CW && !silent) {
+              const msg = `[info][title]\u{1F916} AI一次チェック完了[/title]案件：${row.project}\nファイル：${row.original_name}\n\n結果（速報）はボードの受領箱に掲載しました。正式判定は、社長→こはぜ「ボードの新着をチェック」で本チェックが走ります（この通知は定型文の自動通知です）[/info]`;
+              await fetch(`https://api.chatwork.com/v2/rooms/${CW_ROOM}/messages`, {
+                method: "POST", headers: { "X-ChatworkToken": CW, "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ body: msg }),
+              }).catch(() => {});
+            }
+          } catch (e) {
+            await patch({ status: "AI一次チェック失敗", ai_summary: "エラー: " + String((e as Error)?.message ?? e) });
+          }
+        })();
+        // @ts-ignore Supabase Edge Runtime
+        EdgeRuntime.waitUntil(task);
+        return json({ ok: true, started: true });
       }
       if (b.action === "sign_upload") {
         const orig = String(b.filename ?? "file").slice(0, 120);
